@@ -54,7 +54,7 @@ JEditorPane editorPane_1;
 JLabel lblNewLabel_2;
 boolean TfixeFlag=false,HebdominaireFlag=false;
 int T,Tref=25,Id,Capacite,Nc,days=1,ans=0,x,y,weekDays=-1;
-Double Vs=2.4,Voc=2.3,Vod=1.9,Vex=1.8,SOHo=1.05,ntFix,nwz1,Vn=2.0;
+Double Vs=2.4,Voc=2.3,Vod=1.9,Vex=1.8,SOHo=(double) 1,ntFix,nwz1,Vn=2.0;
 ArrayList<Double> Vss,Vocc,Vodd,Vexx,Vnn,Vcell,SOH,Cm,nt;
 Date starDate,endDate;
 Image image;
@@ -118,7 +118,7 @@ JPanel panel;
 	
 		
 	 // World Weather URL
-	 mUrl="http://api.worldweatheronline.com/premium/v1/past-weather.ashx?key=d73ff5a0288e4c3883c201502200304&q=";
+	 mUrl="http://api.worldweatheronline.com/premium/v1/past-weather.ashx?key=2052464ad950481a83d160216201706&q=";
 		
 		
 	// UI Tabed with content
@@ -439,6 +439,12 @@ JPanel panel;
 		panel_12.setBounds(493, 11, 438, 375);
 		panel.add(panel_12);
 		
+		JLabel lblVeuillezPatienter = new JLabel("Veuillez patienter..........");
+		lblVeuillezPatienter.setFont(new Font("Tahoma", Font.BOLD, 12));
+		lblVeuillezPatienter.setBounds(525, 397, 236, 18);
+		lblVeuillezPatienter.setVisible(false);
+		panel.add(lblVeuillezPatienter);
+		
 	
 		// Spinner listener
 	    spinner.addChangeListener(new ChangeListener() {
@@ -464,6 +470,7 @@ JPanel panel;
 		btnTermin.addMouseListener(new MouseAdapter() {
 			@Override
 		     public void mouseClicked(MouseEvent mouseEvent) {
+				lblVeuillezPatienter.setVisible(true);
 				Thread newThread = new Thread(() -> {
 					//clear data 
 					Vss.clear();Vocc.clear();Vodd.clear();Vexx.clear();Vnn.clear();Vcell.clear();SOH.clear();Cm.clear();nt.clear();
@@ -483,6 +490,7 @@ JPanel panel;
 				    if(Infomodele.size()>360) {
 				    	lblNewLabel_2.setText("Importation des données a été réussit ,Votre site est : "+Infomodele.get(0).getLocation());
 				    	lblNewLabel_2.setForeground(Color.YELLOW);
+				    	lblVeuillezPatienter.setVisible(false);
 				 
 				    	
 				    }else {
@@ -512,47 +520,47 @@ JPanel panel;
 		
 		JLabel lblDateDeDbut = new JLabel("Date de d\u00E9but :");
 		lblDateDeDbut.setFont(new Font("Tahoma", Font.PLAIN, 12));
-		lblDateDeDbut.setBounds(433, 91, 101, 20);
+		lblDateDeDbut.setBounds(433, 107, 101, 20);
 		panel_3.add(lblDateDeDbut);
 		
 		JSpinner spinner_2 = new JSpinner();
 		spinner_2.setModel(new SpinnerDateModel(new Date(1577833200000L), new Date(1577833200000L), new Date(1606777200000L), Calendar.DAY_OF_MONTH));
 		spinner_2.setEditor(new JSpinner.DefaultEditor(spinner_2));
-		spinner_2.setBounds(554, 92, 156, 20);
+		spinner_2.setBounds(554, 108, 156, 20);
 		panel_3.add(spinner_2);
 		
 		JLabel lblDateDeFin = new JLabel("Date de fin :");
 		lblDateDeFin.setFont(new Font("Tahoma", Font.PLAIN, 12));
-		lblDateDeFin.setBounds(433, 122, 101, 25);
+		lblDateDeFin.setBounds(433, 136, 101, 25);
 		panel_3.add(lblDateDeFin);
 		
 		JSpinner spinner_3 = new JSpinner();
 		spinner_3.setModel(new SpinnerDateModel(new Date(1577833200000L), new Date(1577833200000L), new Date(1606777200000L), Calendar.DAY_OF_MONTH));
 		spinner_3.setEditor(new JSpinner.DefaultEditor(spinner_3));
-		spinner_3.setBounds(554, 123, 156, 21);
+		spinner_3.setBounds(554, 139, 156, 21);
 		panel_3.add(spinner_3);
 		
 		JButton btnTermin_2 = new JButton("Importer");
 		btnTermin_2.setBounds(842, 397, 89, 23);
 		panel_3.add(btnTermin_2);
 		
-		JLabel lblDfinitionDeLa = new JLabel("D\u00E9finition de la consommation par");
+		JLabel lblDfinitionDeLa = new JLabel("S\u00E9lectioner le mode de consomation");
 		lblDfinitionDeLa.setFont(new Font("Tahoma", Font.BOLD, 12));
 		lblDfinitionDeLa.setForeground(new Color(0, 0, 0));
-		lblDfinitionDeLa.setBounds(27, 26, 280, 14);
+		lblDfinitionDeLa.setBounds(27, 26, 352, 14);
 		panel_3.add(lblDfinitionDeLa);
 		
-		JRadioButton rdbtnAnnuel = new JRadioButton("Ann\u00E9e");
-		rdbtnAnnuel.setBounds(27, 62, 109, 23);
+		JRadioButton rdbtnAnnuel = new JRadioButton("Annuelle");
+		rdbtnAnnuel.setBounds(27, 47, 109, 23);
 		rdbtnAnnuel.setSelected(true);
 		panel_3.add(rdbtnAnnuel);
 		
-		JRadioButton rdbtnMenseul = new JRadioButton("Mois");
-		rdbtnMenseul.setBounds(27, 86, 109, 23);
+		JRadioButton rdbtnMenseul = new JRadioButton("Monsuelle");
+		rdbtnMenseul.setBounds(413, 38, 109, 20);
 		panel_3.add(rdbtnMenseul);
 		
 		JRadioButton rdbtnHebdomadaire = new JRadioButton("Hebdomadaire");
-		rdbtnHebdomadaire.setBounds(27, 111, 142, 23);
+		rdbtnHebdomadaire.setBounds(413, 205, 142, 23);
 		panel_3.add(rdbtnHebdomadaire);
 		g1.add(rdbtnAnnuel);
 		g1.add(rdbtnMenseul);
@@ -560,51 +568,41 @@ JPanel panel;
 		
 		JLabel lblMensuel = new JLabel("Mensuel");
 		lblMensuel.setFont(new Font("Tahoma", Font.BOLD, 11));
-		lblMensuel.setBounds(433, 66, 120, 14);
+		lblMensuel.setBounds(433, 82, 120, 14);
 		panel_3.add(lblMensuel);
-		
-		JPanel panel_13 = new JPanel();
-		panel_13.setBorder(new EtchedBorder(EtchedBorder.LOWERED, null, null));
-		panel_13.setBounds(413, 62, 504, 123);
-		panel_3.add(panel_13);
 		
 		JLabel lblHebdomadaire = new JLabel("Hebdomadaire");
 		lblHebdomadaire.setFont(new Font("Tahoma", Font.BOLD, 11));
-		lblHebdomadaire.setBounds(433, 217, 156, 14);
+		lblHebdomadaire.setBounds(433, 246, 156, 14);
 		panel_3.add(lblHebdomadaire);
 		
 		JRadioButton rdbtnSamedi = new JRadioButton("Samedi");
-		rdbtnSamedi.setBounds(425, 238, 89, 23);
+		rdbtnSamedi.setBounds(425, 277, 89, 23);
 		panel_3.add(rdbtnSamedi);
 		
 		JRadioButton rdbtnDimenche = new JRadioButton("Dimenche");
-		rdbtnDimenche.setBounds(516, 238, 109, 23);
+		rdbtnDimenche.setBounds(516, 277, 109, 23);
 		panel_3.add(rdbtnDimenche);
 		
 		JRadioButton rdbtnLundi = new JRadioButton("Lundi");
-		rdbtnLundi.setBounds(627, 238, 109, 23);
+		rdbtnLundi.setBounds(627, 277, 109, 23);
 		panel_3.add(rdbtnLundi);
 		
 		JRadioButton rdbtnMardi = new JRadioButton("Mardi");
-		rdbtnMardi.setBounds(738, 238, 109, 23);
+		rdbtnMardi.setBounds(738, 277, 109, 23);
 		panel_3.add(rdbtnMardi);
 		
 		JRadioButton rdbtnMercrudi = new JRadioButton("Mercredi");
-		rdbtnMercrudi.setBounds(425, 264, 89, 23);
+		rdbtnMercrudi.setBounds(425, 303, 89, 23);
 		panel_3.add(rdbtnMercrudi);
 		
 		JRadioButton rdbtnJudi = new JRadioButton("Judi");
-		rdbtnJudi.setBounds(516, 264, 109, 23);
+		rdbtnJudi.setBounds(516, 303, 109, 23);
 		panel_3.add(rdbtnJudi);
 		
 		JRadioButton rdbtnVendredi = new JRadioButton("Vendredi");
-		rdbtnVendredi.setBounds(627, 264, 109, 23);
+		rdbtnVendredi.setBounds(627, 303, 109, 23);
 		panel_3.add(rdbtnVendredi);
-		
-		JPanel panel_14 = new JPanel();
-		panel_14.setBorder(new EtchedBorder(EtchedBorder.LOWERED, null, null));
-		panel_14.setBounds(414, 205, 504, 147);
-		panel_3.add(panel_14);
 		JLabel lblNewLabel_7 = new JLabel("<html>"+s6+"</html>");
 		lblNewLabel_7.setFont(new Font("Tahoma", Font.BOLD | Font.ITALIC, 12));
 		lblNewLabel_7.setBounds(27, 238, 366, 88);
@@ -622,15 +620,38 @@ JPanel panel;
 		lblInstruction.setForeground(new Color(255, 140, 0));
 		lblInstruction.setFont(new Font("Tahoma", Font.BOLD, 13));
 		panel_15.add(lblInstruction);
-		
-		JPanel panel_16 = new JPanel();
-		panel_16.setBorder(new EtchedBorder(EtchedBorder.LOWERED, null, null));
-		panel_16.setBounds(10, 11, 921, 363);
-		panel_3.add(panel_16);
 		JLabel lblNewLabel_8 = new JLabel("<html>"+s7+"</html>");
 		lblNewLabel_8.setForeground(new Color(139, 0, 0));
 		lblNewLabel_8.setBounds(57, 385, 689, 35);
 		panel_3.add(lblNewLabel_8);
+		
+		JPanel panel_14 = new JPanel();
+		panel_14.setBorder(new EtchedBorder(EtchedBorder.LOWERED, null, null));
+		panel_14.setBounds(413, 229, 491, 123);
+		panel_3.add(panel_14);
+		
+		JPanel panel_13 = new JPanel();
+		panel_13.setBorder(new EtchedBorder(EtchedBorder.LOWERED, null, null));
+		panel_13.setBounds(413, 60, 491, 125);
+		panel_3.add(panel_13);
+		
+		JLabel lblannuelleUtilisation = new JLabel("-Annuelle : utilisation des batteries pendant tout l'ann\u00E9e.");
+		lblannuelleUtilisation.setFont(new Font("Tahoma", Font.PLAIN, 11));
+		lblannuelleUtilisation.setForeground(new Color(139, 0, 0));
+		lblannuelleUtilisation.setBounds(10, 94, 380, 19);
+		panel_3.add(lblannuelleUtilisation);
+		
+		JLabel lblMonsuelleUtilisation = new JLabel("-Monsuelle : utilisation des batteries pendant une intervale de temps.");
+		lblMonsuelleUtilisation.setFont(new Font("Tahoma", Font.PLAIN, 11));
+		lblMonsuelleUtilisation.setForeground(new Color(128, 0, 0));
+		lblMonsuelleUtilisation.setBounds(10, 118, 402, 20);
+		panel_3.add(lblMonsuelleUtilisation);
+		
+		JLabel lblhebdomadaireUtilisation = new JLabel("-Hebdomadaire : utilisation des batteries dans quelque jours pendant l'ann\u00E9e.");
+		lblhebdomadaireUtilisation.setFont(new Font("Tahoma", Font.PLAIN, 11));
+		lblhebdomadaireUtilisation.setForeground(new Color(128, 0, 0));
+		lblhebdomadaireUtilisation.setBounds(10, 137, 402, 25);
+		panel_3.add(lblhebdomadaireUtilisation);
 		
 		btnTermin_2.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
@@ -687,11 +708,13 @@ JPanel panel;
 		panel_2.add(lblNewLabel_9);
 		
 		JPanel panel_17 = new JPanel();
+		panel_17.setBackground(new Color(192, 192, 192));
 		panel_17.setBorder(new EtchedBorder(EtchedBorder.LOWERED, null, null));
 		panel_17.setBounds(10, 11, 437, 187);
 		panel_2.add(panel_17);
 		String s9="Dessiner la variation de la capacité estimer par le modele en fonction temps.";
 		JLabel lblDessinerLaVariation = new JLabel("<html>"+s9+"</html>");
+		lblDessinerLaVariation.setBackground(new Color(255, 255, 255));
 		lblDessinerLaVariation.setFont(new Font("Tahoma", Font.PLAIN, 12));
 		lblDessinerLaVariation.setBounds(83, 249, 338, 88);
 		panel_2.add(lblDessinerLaVariation);
@@ -699,17 +722,32 @@ JPanel panel;
 		JButton btnDessiner = new JButton("Tracer");
 		btnDessiner.setBounds(177, 348, 89, 23);
 		panel_2.add(btnDessiner);
+		btnDessiner.addMouseListener(new MouseAdapter() {
+			@Override
+		     public void mouseClicked(MouseEvent mouseEvent) {
+				if(!rdbtnHebdomadaire.isSelected()) {
+				if(String.valueOf(spinner_1.getValue()).equals("Activer")) {
+				avecMpptCalcul();
+				}else {
+					NoMpptCalcul();
+				}
+				}else if(rdbtnHebdomadaire.isSelected()) {
+					if(String.valueOf(spinner_1.getValue()).equals("Activer")) {
+						HebdominaireAvecMpptCalcul();
+						}else {
+							HebdominaireNoMpptCalcul();
+						}
+				}
+				new Graphe(gModele,"capacity");
+			
+			} });
+		
 		
 		JPanel panel_18 = new JPanel();
 		panel_18.setBorder(new EtchedBorder(EtchedBorder.LOWERED, null, null));
-		panel_18.setBackground(new Color(238, 130, 238));
+		panel_18.setBackground(new Color(192, 192, 192));
 		panel_18.setBounds(10, 209, 437, 200);
 		panel_2.add(panel_18);
-		
-		JLabel lblComingSoon = new JLabel("Coming soon");
-		lblComingSoon.setFont(new Font("Tahoma", Font.BOLD, 12));
-		lblComingSoon.setForeground(new Color(255, 250, 205));
-		panel_18.add(lblComingSoon);
 		String s10="Dessinez le graphique de la courbe de température à l'emplacement défini au cours de l'année.";
 		JLabel lblDissenerLaVariation = new JLabel("<html>"+s10+"</html>");
 		lblDissenerLaVariation.setFont(new Font("Tahoma", Font.PLAIN, 12));
@@ -897,7 +935,7 @@ JPanel panel;
 							HebdominaireNoMpptCalcul();
 						}
 				}
-				new Graphe(gModele);
+				new Graphe(gModele,"lifeTime");
 			
 			} });
 		
@@ -1204,5 +1242,4 @@ JPanel panel;
 			
 		}
 	}
-
 }

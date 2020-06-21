@@ -28,6 +28,7 @@ public class FetchData {
     }
 
 public ArrayList<InfoModele> startFetching(String mUrl,String place,JProgressBar progressBar) throws IOException   {
+	System.out.print("begin");
 	SOH_SIMUL soh=new SOH_SIMUL();
 	//// date
 	 dateFormat = new SimpleDateFormat("yyyy-MM-dd");
