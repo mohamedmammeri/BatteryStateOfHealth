@@ -1,4 +1,5 @@
 
+
 public class GrapheModele {
 	double SOH,Cm;
 	int days;
