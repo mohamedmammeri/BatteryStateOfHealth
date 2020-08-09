@@ -84,7 +84,7 @@ public class Graphe extends JFrame {
             float mois = (stat - ans) * 12;
             String f = String.format("%.00f", mois);
             JOptionPane.showMessageDialog(null,
-                    "La durée de vie estimée est : " + ans + " ans et " + f + " Mois");
+                    "The designed life thime is : " + ans + " years and " + f + " Month");
         }
 
     }

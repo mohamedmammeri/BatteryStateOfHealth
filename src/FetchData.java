@@ -27,7 +27,7 @@ public class FetchData {
     }
 
     public ArrayList<InfoModele> startFetching(String mUrl, String place, JProgressBar progressBar) throws IOException {
-        System.out.print("begin");
+       
         StateOfHealthSimulation soh = new StateOfHealthSimulation();
         //// date
         dateFormat = new SimpleDateFormat("yyyy-MM-dd");

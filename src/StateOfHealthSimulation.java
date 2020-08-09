@@ -4,10 +4,7 @@ import java.awt.Dimension;
 import java.awt.EventQueue;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.awt.event.MouseListener;
 import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -29,7 +26,6 @@ import java.awt.Image;
 
 import javax.swing.JSpinner;
 import javax.swing.SpinnerListModel;
-import javax.swing.UIManager;
 
 import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
@@ -51,19 +47,20 @@ import javax.swing.JRadioButton;
 
 
 public class StateOfHealthSimulation {
-    String mUrl, place, StorageCondition, RegulatorMode;
+    String mUrl, place;
     ArrayList<InfoModele> Infomodele;
     ArrayList<GrapheModele> gModele;
+    ArrayList<Double> nt;
+    ArrayList<Date> listOfDates,weekDaysList;
     JEditorPane editorPane_1;
     JLabel editCommentaire;
-    boolean TfixeFlag = false, HebdominaireFlag = false;
-    int T, Tref = 25, Id, Capacite, CapacityNominal, CapacityInitial, TensionNominal, days = 1, ans = 0, x, y, weekDays = -1;
-    Double Vs = 2.4, Voc = 2.3, Vod = 1.9, Vex = 1.8, SOHo = (double) 1, ntFix, nwz1, Vn = 2.0;
-    ArrayList<Double> Vss, Vocc, Vodd, Vexx, Vnn, Vcell, SOH, Cm, nt;
-    Date starDate, endDate;
+    boolean TfixeFlag = false, HebdominaireFlag = false,EstivalFlag=false,HivernalFlag=false, RegulatorModeMppt=false;
+    int T, Tref = 25, Id, Capacite, CapacityNominal, CapacityInitial, TensionNominal, days = 1, ans = 0;
+    Double SOHo = (double) 1, nwz1,Coef=1.0;
+    Date starDate, endDate,firstDay,lastDay;
     Image image;
     JProgressBar progressBar;
-
+    JSpinner regulateur_spinner;
 
     private JFrame frame;
 
@@ -97,18 +94,16 @@ public class StateOfHealthSimulation {
 
         //lists
 
-        Vss = new ArrayList<Double>();
-        Vocc = new ArrayList<Double>();
-        Vodd = new ArrayList<Double>();
-        Vexx = new ArrayList<Double>();
-        Vnn = new ArrayList<Double>();
-        Vcell = new ArrayList<Double>();
         nt = new ArrayList<Double>();
-        SOH = new ArrayList<Double>();
-        Cm = new ArrayList<Double>();
         Infomodele = new ArrayList<>();
         gModele = new ArrayList<>();
-
+        //set first and last day of the year
+        SimpleDateFormat sim=new SimpleDateFormat("yyyy-mm-dd");
+          try {
+         firstDay = sim.parse("2018-01-01");
+         lastDay = sim.parse("2018-12-30");
+          }catch(ParseException e) {}
+         
 
         // UI Frame
 
@@ -146,46 +141,44 @@ public class StateOfHealthSimulation {
         });
         ////////// Strings 
 
-        String s = "&nbsp &nbsp -Il est recommandé de fixer la température de la batterie sur la valeur de la température ambiante , car selon \n"
-                + " la loi de Peukert chaque 10 C la durée de vie de la batterie \n"
-                + " diminue de moitié comme le montre la figure ci-dessus.";
+        String s = "&nbsp &nbsp -It is recommended to use room temperature; Batteries achieve optimum cycle life if operated at 20°C or below ;\" Elevated temperatures affect the battery SOH";
 
-        String s3 = "(Vous pouvez entrer US Zipcode, UK Postcode, Canada Code postal, IP address, Latitude/Longitude (degré décimal) ou Nom de Ville)";
+        String s3 = "(Enter US Zip code, UK Postcode, Canada Code postal, IP address, Latitude/Longitude (decimal degree) or the name of the city)";
 
         //===================================================================================================================================//
         //															Battery tab 
         //====================================================================================================================================//	
         JPanel panel_Battery = new JPanel();
-        tabbedPane.addTab("Batterie", null, panel_Battery, null);
+        tabbedPane.addTab("Battery", null, panel_Battery, null);
         panel_Battery.setLayout(null);
 
-        JLabel lblProcdure = new JLabel("Proc\u00E9dure");
+        JLabel lblProcdure = new JLabel("System Design");
         lblProcdure.setForeground(new Color(178, 34, 34));
         lblProcdure.setFont(new Font("Tahoma", Font.BOLD, 13));
-        lblProcdure.setBounds(21, 11, 70, 27);
+        lblProcdure.setBounds(21, 11, 105, 27);
         panel_Battery.add(lblProcdure);
 
-        JLabel lblBatterie = new JLabel("Batterie  :               -D\u00E9finissez les caracteristiques de la batterie.  ");
+        JLabel lblBatterie = new JLabel("Battery  :                   -Specify the battery parameters.");
         lblBatterie.setForeground(new Color(178, 34, 34));
         lblBatterie.setBounds(26, 36, 459, 14);
         panel_Battery.add(lblBatterie);
 
-        JLabel lblNewLabel_3 = new JLabel("Utilisation :            -D\u00E9finissez le temps de travaille de la batterie pendant l'ann\u00E9e.");
+        JLabel lblNewLabel_3 = new JLabel("Working time :          -Annual, Period, Seasonal, Weekly.");
         lblNewLabel_3.setForeground(new Color(178, 34, 34));
         lblNewLabel_3.setBounds(26, 49, 459, 20);
         panel_Battery.add(lblNewLabel_3);
 
-        JLabel lblSitedfinissez = new JLabel("Site :                       -D\u00E9finissez le site g\u00E9ographique o\u00F9 la batterie est stock\u00E9e.");
+        JLabel lblSitedfinissez = new JLabel("Site :                           -Enter the site name.");
         lblSitedfinissez.setForeground(new Color(178, 34, 34));
         lblSitedfinissez.setBounds(26, 67, 459, 19);
         panel_Battery.add(lblSitedfinissez);
 
-        JLabel lblGraphestracer = new JLabel("Graphes :              -Tracer les graphes est d\u00E9finer la dur\u00E9e de vie/Capacit\u00E9/Temp\u00E9rature ");
+        JLabel lblGraphestracer = new JLabel("Graphs :                     - Battery SOH (with expected life) and Capacity.");
         lblGraphestracer.setForeground(new Color(178, 34, 34));
         lblGraphestracer.setBounds(26, 80, 459, 20);
         panel_Battery.add(lblGraphestracer);
 
-        JLabel lblDureDeVie = new JLabel("Dur\u00E9e de vie de la batterie :");
+        JLabel lblDureDeVie = new JLabel("Battery designed life :");
         lblDureDeVie.setFont(new Font("Tahoma", Font.PLAIN, 12));
         lblDureDeVie.setBounds(21, 308, 229, 14);
         panel_Battery.add(lblDureDeVie);
@@ -195,12 +188,12 @@ public class StateOfHealthSimulation {
         editorLifeTime.setBorder(new BevelBorder(BevelBorder.LOWERED, null, null, null, null));
         panel_Battery.add(editorLifeTime);
 
-        JLabel lblAm = new JLabel("an(s)");
+        JLabel lblAm = new JLabel("year(s)");
         lblAm.setFont(new Font("Tahoma", Font.PLAIN, 14));
         lblAm.setBounds(370, 304, 46, 20);
         panel_Battery.add(lblAm);
 
-        JLabel lblCapacitDeBatterie = new JLabel("Capacit\u00E9 C10 :");
+        JLabel lblCapacitDeBatterie = new JLabel("Nominal Capacity (C10) :");
         lblCapacitDeBatterie.setFont(new Font("Tahoma", Font.PLAIN, 12));
         lblCapacitDeBatterie.setBounds(21, 176, 168, 14);
         panel_Battery.add(lblCapacitDeBatterie);
@@ -215,7 +208,7 @@ public class StateOfHealthSimulation {
         lblAh.setBounds(370, 177, 46, 19);
         panel_Battery.add(lblAh);
 
-        JLabel lblTensionNominal = new JLabel("Tension nominal :");
+        JLabel lblTensionNominal = new JLabel("Nominal Voltage :");
         lblTensionNominal.setFont(new Font("Tahoma", Font.PLAIN, 12));
         lblTensionNominal.setBounds(21, 239, 148, 23);
         panel_Battery.add(lblTensionNominal);
@@ -231,12 +224,12 @@ public class StateOfHealthSimulation {
         panel_4.setBounds(10, 11, 475, 113);
         panel_Battery.add(panel_4);
 
-        JLabel lblDfinissezLesCaracteristique = new JLabel("D\u00E9finissez les caracteristiques de la batterie");
+        JLabel lblDfinissezLesCaracteristique = new JLabel("Battery parameters");
         lblDfinissezLesCaracteristique.setFont(new Font("Tahoma", Font.BOLD, 12));
         lblDfinissezLesCaracteristique.setBounds(26, 151, 268, 14);
         panel_Battery.add(lblDfinissezLesCaracteristique);
 
-        JLabel lblTempratureDeRfrence = new JLabel("Temp\u00E9rature de r\u00E9f\u00E9rence :");
+        JLabel lblTempratureDeRfrence = new JLabel("Reference Temperature :");
         lblTempratureDeRfrence.setFont(new Font("Tahoma", Font.PLAIN, 12));
         lblTempratureDeRfrence.setBounds(21, 279, 229, 14);
         panel_Battery.add(lblTempratureDeRfrence);
@@ -246,12 +239,12 @@ public class StateOfHealthSimulation {
         editorTemps.setBorder(new BevelBorder(BevelBorder.LOWERED, null, null, null, null));
         panel_Battery.add(editorTemps);
 
-        JLabel lblC = new JLabel("C (25 par défault)");
+        JLabel lblC = new JLabel("C (25c default)");
         lblC.setFont(new Font("Tahoma", Font.PLAIN, 14));
         lblC.setBounds(355, 275, 139, 20);
         panel_Battery.add(lblC);
 
-        JLabel lblCapacitInitiale = new JLabel("Capacit\u00E9 initiale :");
+        JLabel lblCapacitInitiale = new JLabel("Initial Capacity :");
         lblCapacitInitiale.setFont(new Font("Tahoma", Font.PLAIN, 12));
         lblCapacitInitiale.setBounds(22, 213, 187, 14);
         panel_Battery.add(lblCapacitInitiale);
@@ -274,20 +267,20 @@ public class StateOfHealthSimulation {
         /// mode of regulator group
         ButtonGroup gRegulateur = new ButtonGroup();
 
-        JRadioButton rdbtnNewRadioButton = new JRadioButton("Couplage direct");
+        JRadioButton rdbtnNewRadioButton = new JRadioButton("Direct");
         rdbtnNewRadioButton.setBackground(new Color(208, 255, 208));
         rdbtnNewRadioButton.setBounds(690, 240, 168, 23);
         rdbtnNewRadioButton.setEnabled(false);
         rdbtnNewRadioButton.setSelected(true);
         panel_Battery.add(rdbtnNewRadioButton);
 
-        JRadioButton rdbtnConvertiseurMppt = new JRadioButton("Convertiseur MPPT");
+        JRadioButton rdbtnConvertiseurMppt = new JRadioButton("MPPT");
         rdbtnConvertiseurMppt.setBackground(new Color(208, 255, 208));
         rdbtnConvertiseurMppt.setBounds(690, 266, 168, 23);
         rdbtnConvertiseurMppt.setEnabled(false);
         panel_Battery.add(rdbtnConvertiseurMppt);
 
-        JRadioButton rdbtnConvertisseurDcdc = new JRadioButton("Convertisseur DCDC");
+        JRadioButton rdbtnConvertisseurDcdc = new JRadioButton("DCDC");
         rdbtnConvertisseurDcdc.setBackground(new Color(208, 255, 208));
         rdbtnConvertisseurDcdc.setBounds(690, 292, 153, 23);
         rdbtnConvertisseurDcdc.setEnabled(false);
@@ -298,15 +291,15 @@ public class StateOfHealthSimulation {
 
         /// regulateur spinner
 
-        JSpinner regulateur_spinner = new JSpinner();
-        regulateur_spinner.setModel(new SpinnerListModel(new String[]{"   D\u00E9sactiver", "   Activer"}));
+        regulateur_spinner = new JSpinner();
+        regulateur_spinner.setModel(new SpinnerListModel(new String[]{"   No","   Ok"}));
         regulateur_spinner.setBounds(690, 187, 129, 20);
         panel_Battery.add(regulateur_spinner);
         regulateur_spinner.addChangeListener(new ChangeListener() {
 
             @Override
             public void stateChanged(ChangeEvent arg0) {
-                if (regulateur_spinner.getValue().equals("   Activer")) {
+                if (regulateur_spinner.getValue().equals("   Ok")) {
                     rdbtnNewRadioButton.setEnabled(true);
                     rdbtnConvertiseurMppt.setEnabled(true);
                     rdbtnConvertisseurDcdc.setEnabled(true);
@@ -321,40 +314,50 @@ public class StateOfHealthSimulation {
         });
 
 
-        JLabel lblConditionsDeStockages = new JLabel("Conditions de stockages :");
+        JLabel lblConditionsDeStockages = new JLabel("Sizing:");
         lblConditionsDeStockages.setFont(new Font("Tahoma", Font.BOLD, 12));
         lblConditionsDeStockages.setBounds(535, 14, 250, 20);
         panel_Battery.add(lblConditionsDeStockages);
 
         /// Condition of stockage group
         ButtonGroup gCondition = new ButtonGroup();
-        JRadioButton rdbtnNormal = new JRadioButton("Condition Normale");
-        rdbtnNormal.setBounds(518, 40, 187, 23);
+        JRadioButton rdbtnNormal = new JRadioButton("Accurate");
+        rdbtnNormal.setBounds(518, 40, 112, 23);
         rdbtnNormal.setSelected(true);
         panel_Battery.add(rdbtnNormal);
 
-        JRadioButton rdbtnOversize = new JRadioButton("Condition Surdimensioner");
-        rdbtnOversize.setBounds(518, 66, 203, 21);
+        JRadioButton rdbtnOversize = new JRadioButton("Oversizing");
+        rdbtnOversize.setBounds(518, 66, 112, 21);
         panel_Battery.add(rdbtnOversize);
 
-        JRadioButton rdbtnLesssize = new JRadioButton("Condition SousDimensioner");
-        rdbtnLesssize.setBounds(518, 90, 255, 23);
+        JRadioButton rdbtnLesssize = new JRadioButton("Undersizing");
+        rdbtnLesssize.setBounds(518, 90, 112, 23);
         panel_Battery.add(rdbtnLesssize);
+        
+        JRadioButton rdbtnHivernal = new JRadioButton("Winter");
+        rdbtnHivernal.setBounds(676, 36, 109, 23);
+        panel_Battery.add(rdbtnHivernal);
+        
+        JRadioButton rdbtnstival = new JRadioButton("Summer");
+        rdbtnstival.setBounds(676, 65, 109, 23);
+        panel_Battery.add(rdbtnstival);
         gCondition.add(rdbtnNormal);
         gCondition.add(rdbtnOversize);
         gCondition.add(rdbtnLesssize);
+        gCondition.add(rdbtnHivernal);
+        gCondition.add(rdbtnstival);
 
 
-        JLabel label_3 = new JLabel("<html>Les param\u00E8tres de fonctionnement de r\u00E8gulateur seront automatiquement ajust\u00E9 selon les propriet\u00E9s de systeme.</html>");
+        JLabel label_3 = new JLabel("<html>Controller operating parameters will be automatically adjusted.</html>");
         label_3.setForeground(new Color(165, 42, 42));
         label_3.setBounds(535, 332, 369, 46);
         panel_Battery.add(label_3);
 
-        JLabel label_4 = new JLabel("Regulateur universel :");
+        JLabel label_4 = new JLabel("Universal Controller :");
         label_4.setBounds(535, 190, 129, 14);
         panel_Battery.add(label_4);
 
-        JLabel lblModeDopration = new JLabel("Mode d'op\u00E9ration :");
+        JLabel lblModeDopration = new JLabel("Control mode :");
         lblModeDopration.setBounds(535, 244, 129, 14);
         panel_Battery.add(lblModeDopration);
 
@@ -370,17 +373,12 @@ public class StateOfHealthSimulation {
         panel_6.setBackground(new Color(208, 255, 208));
         panel_Battery.add(panel_6);
 
-        JLabel lblChoixDeRgulateur = new JLabel("Choix de R\u00E9gulateur :");
+        JLabel lblChoixDeRgulateur = new JLabel("Control Type :");
         panel_6.add(lblChoixDeRgulateur);
         lblChoixDeRgulateur.setForeground(new Color(0, 128, 0));
         lblChoixDeRgulateur.setFont(new Font("Tahoma", Font.BOLD, 12));
 
-        JPanel panel_12 = new JPanel();
-        panel_12.setBorder(new EtchedBorder(EtchedBorder.LOWERED, null, null));
-        panel_12.setBounds(496, 11, 435, 113);
-        panel_Battery.add(panel_12);
-
-        JLabel lblNewLabel = new JLabel("(Ci=C10 par d\u00E9fault)");
+        JLabel lblNewLabel = new JLabel("(C10 default)");
         lblNewLabel.setFont(new Font("Tahoma", Font.PLAIN, 10));
         lblNewLabel.setBounds(375, 214, 105, 14);
         panel_Battery.add(lblNewLabel);
@@ -392,7 +390,7 @@ public class StateOfHealthSimulation {
 
 // import battery data
 
-        JButton btnImporta_battery = new JButton("Importer");
+        JButton btnImporta_battery = new JButton("Import");
         btnImporta_battery.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent arg0) {
                 Id = 0;
@@ -426,41 +424,66 @@ public class StateOfHealthSimulation {
 
                 } catch (Exception e) {
                     JOptionPane.showMessageDialog(null,
-                            "Il y'a des erreurs véréfie les valeurs entré");
+                            "Error, Check the entered values");
                 }
 
                 // input consomation mode
-                if (rdbtnNormal.isSelected()) {
-                    StorageCondition = "mode1";
-                } else if (rdbtnOversize.isSelected()) {
-                    StorageCondition = "mode2";
-                } else {
-                    StorageCondition = "mode3";
+                if(rdbtnNormal.isSelected()) Coef=1.0;
+                if(rdbtnOversize.isSelected()) Coef+=10;
+                if(rdbtnLesssize.isSelected()) Coef+=10;
+                if(rdbtnHivernal.isSelected()) {
+                	HivernalFlag=true;
+                }else {
+                	HivernalFlag=false;
                 }
+                if(rdbtnstival.isSelected()) {
+                	EstivalFlag=true;
+                }else {
+                	EstivalFlag=false;
+                }
+                
+                
 
                 // input regulator mode
-                if (regulateur_spinner.getValue().equals("   Activer")) {
+                if (regulateur_spinner.getValue().equals("   Ok")) {
                     if (rdbtnNewRadioButton.isSelected()) {
-                        RegulatorMode = "Normal";
+                        
                     } else if (rdbtnConvertiseurMppt.isSelected()) {
-                        RegulatorMode = "MPPT";
+                    	RegulatorModeMppt=true;
+                        Coef-=5;
                     } else {
-                        RegulatorMode = "DCDC";
+                    	RegulatorModeMppt=false;
+                        Coef-=7;
                     }
+                }else {
+                	
+                	Coef+=7;
                 }
 
 
                 if (Id != 0 && CapacityNominal != 0 && TensionNominal != 0) {
-                    editCommentaire.setText("Opération Réussit");
+                    editCommentaire.setText("Successful operation");
                     editCommentaire.setForeground(Color.YELLOW);
                 } else {
-                    editCommentaire.setText("Opération Échec ,Vérifie que vous avez remplir tous les cases.");
+                    editCommentaire.setText("Operation failed, Check that you have to fill in all the boxes");
                     editCommentaire.setForeground(new Color(255, 0, 0));
                 }
             }
         });
         btnImporta_battery.setBounds(842, 397, 89, 23);
         panel_Battery.add(btnImporta_battery);
+        
+        JButton btnReset = new JButton("Reset");
+        btnReset.setBounds(20, 397, 89, 23);
+        panel_Battery.add(btnReset);
+        btnReset.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent arg0) {
+            
+            }
+        	
+        });
+        
+       
         //=========================================================================================================================//
         // 														 site Tabe 
         //=========================================================================================================================//
@@ -493,7 +516,7 @@ public class StateOfHealthSimulation {
         panel_graph_photo.setBounds(524, 21, 381, 201);
         panel_site.add(panel_graph_photo);
 
-        JLabel lblNewLabel_4 = new JLabel("Instruction :");
+        JLabel lblNewLabel_4 = new JLabel("Note :");
         lblNewLabel_4.setFont(new Font("Tahoma", Font.BOLD, 14));
         lblNewLabel_4.setForeground(new Color(255, 165, 0));
         lblNewLabel_4.setBounds(524, 277, 104, 14);
@@ -511,11 +534,11 @@ public class StateOfHealthSimulation {
         panel_7.setBounds(504, 264, 427, 114);
         panel_site.add(panel_7);
 
-        JLabel lblFigPerte = new JLabel("fig : Perte de la capacit\u00E9 \u00E9nerg\u00E9tique \u00E0 diff\u00E9rentes temp\u00E9ratures.");
+        JLabel lblFigPerte = new JLabel("fig: Decrease of battery capacity at elevated temperatures.");
         lblFigPerte.setBounds(534, 239, 360, 14);
         panel_site.add(lblFigPerte);
 
-        JLabel lblSiteGographique = new JLabel("Nom de Site :");
+        JLabel lblSiteGographique = new JLabel("Site :");
         lblSiteGographique.setFont(new Font("Tahoma", Font.PLAIN, 12));
         lblSiteGographique.setBounds(36, 43, 165, 30);
         panel_site.add(lblSiteGographique);
@@ -525,14 +548,14 @@ public class StateOfHealthSimulation {
         editorPane.setBorder(new BevelBorder(BevelBorder.LOWERED, null, null, null, null));
         panel_site.add(editorPane);
 
-        JLabel lblFixLaTemprature = new JLabel("Fixer la temp\u00E9rature ?");
+        JLabel lblFixLaTemprature = new JLabel("Ref Temperature  ?");
         lblFixLaTemprature.setFont(new Font("Tahoma", Font.PLAIN, 12));
         lblFixLaTemprature.setBounds(57, 207, 144, 38);
         panel_site.add(lblFixLaTemprature);
 
         JSpinner spinner = new JSpinner();
         spinner.setBackground(new Color(255, 255, 255));
-        spinner.setModel(new SpinnerListModel(new String[]{"\tNon", "\tOui"}));
+        spinner.setModel(new SpinnerListModel(new String[]{"\tNo", "\tOk"}));
         spinner.setFont(new Font("Tahoma", Font.PLAIN, 14));
         spinner.setOpaque(true);
         spinner.setBounds(190, 212, 211, 27);
@@ -544,16 +567,18 @@ public class StateOfHealthSimulation {
         panel_site.add(lblT);
 
         editorPane_1 = new JEditorPane();
+        editorPane_1.setForeground(new Color(0, 0, 0));
         editorPane_1.setContentType("Integer/Double\r\n");
         editorPane_1.setBounds(131, 256, 55, 30);
+        editorPane_1.setBackground(new Color(240,240,240));
         editorPane_1.setBorder(new BevelBorder(BevelBorder.LOWERED, null, null, null, null));
         editorPane_1.setEditable(false);
         panel_site.add(editorPane_1);
 
-        JLabel lblLieu = new JLabel("Lieu");
+        JLabel lblLieu = new JLabel("Geographical location");
         lblLieu.setForeground(new Color(0, 0, 255));
         lblLieu.setFont(new Font("Tahoma", Font.BOLD, 13));
-        lblLieu.setBounds(36, 11, 46, 14);
+        lblLieu.setBounds(36, 11, 165, 21);
         panel_site.add(lblLieu);
         JLabel lblpassUsZipcode = new JLabel("<html>" + s3 + "</html>");
         lblpassUsZipcode.setBounds(36, 84, 447, 40);
@@ -569,12 +594,12 @@ public class StateOfHealthSimulation {
         lblC_1.setBounds(200, 256, 46, 30);
         panel_site.add(lblC_1);
 
-        JLabel lblTempratureDeBatterie = new JLabel("Temp\u00E9rature de la batterie on op\u00E9ration");
+        JLabel lblTempratureDeBatterie = new JLabel("Battery working temperature");
         lblTempratureDeBatterie.setForeground(new Color(165, 42, 42));
         lblTempratureDeBatterie.setFont(new Font("Tahoma", Font.BOLD, 13));
         lblTempratureDeBatterie.setBounds(36, 170, 292, 26);
         panel_site.add(lblTempratureDeBatterie);
-        JLabel lblCommeOnA = new JLabel("<html> la temp\u00E9rature est importante pour la dur\u00E9e de vie de la batterie, Si vous ne pouvez pas fix\u00E9 la temperature de la batterie laissez le choix sur (Non) et le syst\u00E8me va prendre la valeur de la temp\u00E9rature de lieu. </html>");
+        JLabel lblCommeOnA = new JLabel("<html> l> If the reference temperature cannot be set, the program will use the site temperature.</html>");
         lblCommeOnA.setForeground(new Color(165, 42, 42));
         lblCommeOnA.setBounds(36, 297, 433, 104);
         panel_site.add(lblCommeOnA);
@@ -588,9 +613,7 @@ public class StateOfHealthSimulation {
         progressBar.setBounds(27, 397, 456, 14);
         panel_site.add(progressBar);
 
-        String s5 = "les paramètres de fonctionnement de règulateur seront automatiquement ajusté selon les proprietés de systeme.";
-
-        JLabel lblVeuillezPatienter = new JLabel("Veuillez patienter..........");
+        JLabel lblVeuillezPatienter = new JLabel("Please wait..........");
         lblVeuillezPatienter.setFont(new Font("Tahoma", Font.BOLD, 12));
         lblVeuillezPatienter.setBounds(525, 397, 236, 18);
         lblVeuillezPatienter.setVisible(false);
@@ -603,13 +626,16 @@ public class StateOfHealthSimulation {
             @Override
             public void stateChanged(ChangeEvent e) {
 
-                if (String.valueOf(spinner.getValue()).equals("	Oui")) {
+                if (String.valueOf(spinner.getValue()).equals("\tOk")){
                     editorPane_1.setEditable(true);
+                    editorPane_1.setBackground(new Color(255,255,255));
                     TfixeFlag = true;
+                   
 
 
                 } else {
                     editorPane_1.setEditable(false);
+                    editorPane_1.setBackground(new Color(240,240,240));
                     TfixeFlag = false;
 
                 }
@@ -617,7 +643,7 @@ public class StateOfHealthSimulation {
         });
 
         // button import site data
-        JButton btnImporeterSite = new JButton("Importer");
+        JButton btnImporeterSite = new JButton("Import");
         btnImporeterSite.setBounds(842, 397, 89, 23);
         panel_site.add(btnImporeterSite);
 
@@ -627,8 +653,6 @@ public class StateOfHealthSimulation {
                 lblVeuillezPatienter.setVisible(true);
                 Thread newThread = new Thread(() -> {
                     //clear data 
-                    SOH.clear();
-                    Cm.clear();
                     nt.clear();
                     gModele.clear();
                     Infomodele.clear();
@@ -647,13 +671,13 @@ public class StateOfHealthSimulation {
                     }
 
                     if (Infomodele.size() > 360) {
-                        editCommentaire.setText("Importation des données a été réussit ,Votre site est : " + Infomodele.get(0).getLocation());
+                        editCommentaire.setText("Data import was successful, Your site is: " + Infomodele.get(0).getLocation());
                         editCommentaire.setForeground(Color.YELLOW);
                         lblVeuillezPatienter.setVisible(false);
 
 
                     } else {
-                        editCommentaire.setText("Importation des données a été échoué ");
+                        editCommentaire.setText("Data import failed ");
                         editCommentaire.setForeground(new Color(255, 0, 0));
                     }
                     if (TfixeFlag) {
@@ -664,26 +688,20 @@ public class StateOfHealthSimulation {
                 newThread.start();
             }
         });
-
-        String s6 = "&nbsp &nbsp &nbsp Le systeme dépend des données météorologiques, et comme il n'y a pas de données gratuites disponibles par heure,"
-                + " la moyenne quotidienne est utilisée pour l'arrondi, il n'y a donc pas d'option pour spécifier les heures d'utilisation par jour";
-
-        String s7 = "Nous nous appuierons sur des données d'extrapolation pour les dernières années afin de collecter des données météorologiques.";
-
         //==============================================================================================================================//	
         // 														 Utilisation Tabe
         //=============================================================================================================================//	
 
         JPanel panel_3 = new JPanel();
-        tabbedPane.addTab("Utilisation", null, panel_3, null);
+        tabbedPane.addTab("Working Time", null, panel_3, null);
         panel_3.setLayout(null);
 
-        JLabel lblDateDeDbut = new JLabel("Date de d\u00E9but :");
+        JLabel lblDateDeDbut = new JLabel("Strart Date :");
         lblDateDeDbut.setFont(new Font("Tahoma", Font.PLAIN, 12));
         lblDateDeDbut.setBounds(64, 263, 101, 20);
         panel_3.add(lblDateDeDbut);
 
-        JLabel lblDfinitionDeLa = new JLabel("S\u00E9lectioner le mode de consommation");
+        JLabel lblDfinitionDeLa = new JLabel("Select the working time of the battery");
         lblDfinitionDeLa.setFont(new Font("Tahoma", Font.BOLD, 12));
         lblDfinitionDeLa.setForeground(new Color(0, 0, 0));
         lblDfinitionDeLa.setBounds(27, 26, 352, 14);
@@ -692,20 +710,20 @@ public class StateOfHealthSimulation {
         /// Consomation mode groupe
         ButtonGroup gConsomation = new ButtonGroup();
 
-        JRadioButton rdbtnAnnuel = new JRadioButton("Annuelle");
+        JRadioButton rdbtnAnnuel = new JRadioButton("All year ");
         rdbtnAnnuel.setBounds(27, 47, 109, 23);
         rdbtnAnnuel.setSelected(true);
         panel_3.add(rdbtnAnnuel);
 
-        JRadioButton rdbtnSaisonialle = new JRadioButton("Saisonnier");
+        JRadioButton rdbtnSaisonialle = new JRadioButton("Seasonal ");
         rdbtnSaisonialle.setBounds(483, 47, 109, 23);
         panel_3.add(rdbtnSaisonialle);
 
-        JRadioButton rdbtnPeriodique = new JRadioButton("P\u00E9riodique");
+        JRadioButton rdbtnPeriodique = new JRadioButton("Period ");
         rdbtnPeriodique.setBounds(27, 206, 109, 20);
         panel_3.add(rdbtnPeriodique);
 
-        JRadioButton rdbtnHebdomadaire = new JRadioButton("Hebdomadaire");
+        JRadioButton rdbtnHebdomadaire = new JRadioButton("Weekly");
         rdbtnHebdomadaire.setBounds(483, 205, 142, 23);
         panel_3.add(rdbtnHebdomadaire);
         gConsomation.add(rdbtnAnnuel);
@@ -714,37 +732,37 @@ public class StateOfHealthSimulation {
         gConsomation.add(rdbtnSaisonialle);
 
         /// weekly buttons
-        JRadioButton rdbtnSamedi = new JRadioButton("Samedi");
+        JRadioButton rdbtnSamedi = new JRadioButton("Saturday");
         rdbtnSamedi.setBounds(509, 277, 89, 23);
         rdbtnSamedi.setEnabled(false);
         panel_3.add(rdbtnSamedi);
 
-        JRadioButton rdbtnDimenche = new JRadioButton("Dimanche");
+        JRadioButton rdbtnDimenche = new JRadioButton("Sunday");
         rdbtnDimenche.setBounds(600, 277, 109, 23);
         rdbtnDimenche.setEnabled(false);
         panel_3.add(rdbtnDimenche);
 
-        JRadioButton rdbtnLundi = new JRadioButton("Lundi");
+        JRadioButton rdbtnLundi = new JRadioButton("Monday ");
         rdbtnLundi.setBounds(711, 277, 109, 23);
         rdbtnLundi.setEnabled(false);
         panel_3.add(rdbtnLundi);
 
-        JRadioButton rdbtnMardi = new JRadioButton("Mardi");
+        JRadioButton rdbtnMardi = new JRadioButton("Tuesday ");
         rdbtnMardi.setBounds(822, 277, 101, 23);
         rdbtnMardi.setEnabled(false);
         panel_3.add(rdbtnMardi);
 
-        JRadioButton rdbtnMercrudi = new JRadioButton("Mercredi");
+        JRadioButton rdbtnMercrudi = new JRadioButton("Wednesday ");
         rdbtnMercrudi.setBounds(509, 303, 89, 23);
         rdbtnMercrudi.setEnabled(false);
         panel_3.add(rdbtnMercrudi);
 
-        JRadioButton rdbtnJudi = new JRadioButton("Jeudi");
+        JRadioButton rdbtnJudi = new JRadioButton("Thursday");
         rdbtnJudi.setBounds(600, 303, 109, 23);
         rdbtnJudi.setEnabled(false);
         panel_3.add(rdbtnJudi);
 
-        JRadioButton rdbtnVendredi = new JRadioButton("Vendredi");
+        JRadioButton rdbtnVendredi = new JRadioButton("Friday ");
         rdbtnVendredi.setBounds(711, 303, 109, 23);
         rdbtnVendredi.setEnabled(false);
         panel_3.add(rdbtnVendredi);
@@ -804,26 +822,26 @@ public class StateOfHealthSimulation {
         });
 
 
-        JLabel lblannuelleUtilisation = new JLabel("-Annuelle : utilisation des batteries pendant toute l'ann\u00E9e.");
+        JLabel lblannuelleUtilisation = new JLabel("- All year: Batteries work every day of the year");
         lblannuelleUtilisation.setFont(new Font("Tahoma", Font.PLAIN, 11));
         lblannuelleUtilisation.setForeground(new Color(139, 0, 0));
         lblannuelleUtilisation.setBounds(10, 94, 380, 19);
         panel_3.add(lblannuelleUtilisation);
 
-        JLabel lblMonsuelleUtilisation = new JLabel("-Monsuelle : utilisation des batteries pendant un intervalle de temps.");
+        JLabel lblMonsuelleUtilisation = new JLabel("- Period : Batteries work on a time interval.");
         lblMonsuelleUtilisation.setFont(new Font("Tahoma", Font.PLAIN, 11));
         lblMonsuelleUtilisation.setForeground(new Color(128, 0, 0));
         lblMonsuelleUtilisation.setBounds(10, 118, 402, 20);
         panel_3.add(lblMonsuelleUtilisation);
 
-        JLabel lblhebdomadaireUtilisation = new JLabel("-Hebdomadaire : utilisation des batteries dans quelques jours pendant l'ann\u00E9e.");
+        JLabel lblhebdomadaireUtilisation = new JLabel("- Weekly : Batteries work on specified days of the week");
         lblhebdomadaireUtilisation.setFont(new Font("Tahoma", Font.PLAIN, 11));
         lblhebdomadaireUtilisation.setForeground(new Color(128, 0, 0));
         lblhebdomadaireUtilisation.setBounds(10, 137, 402, 25);
         panel_3.add(lblhebdomadaireUtilisation);
 
 
-        JLabel lblDateDeFin = new JLabel("Date de fin :");
+        JLabel lblDateDeFin = new JLabel("End Date:");
         lblDateDeFin.setBounds(64, 306, 69, 15);
         panel_3.add(lblDateDeFin);
         lblDateDeFin.setFont(new Font("Tahoma", Font.PLAIN, 12));
@@ -833,7 +851,7 @@ public class StateOfHealthSimulation {
         panel_5.setBounds(10, 229, 424, 123);
         panel_3.add(panel_5);
 
-        JLabel lblNewLabel_1 = new JLabel("P\u00E9riodique");
+        JLabel lblNewLabel_1 = new JLabel("Period");
         lblNewLabel_1.setFont(new Font("Tahoma", Font.BOLD, 11));
         panel_5.add(lblNewLabel_1);
 
@@ -842,7 +860,7 @@ public class StateOfHealthSimulation {
         panel_13.setBounds(459, 229, 472, 123);
         panel_3.add(panel_13);
 
-        JLabel lblHbdomadiare = new JLabel("H\u00E9bdomadiare");
+        JLabel lblHbdomadiare = new JLabel("Weekly");
         lblHbdomadiare.setFont(new Font("Tahoma", Font.BOLD, 11));
         panel_13.add(lblHbdomadiare);
 
@@ -850,22 +868,22 @@ public class StateOfHealthSimulation {
 
         ButtonGroup seasonal = new ButtonGroup();
 
-        JRadioButton rdbtnSummer = new JRadioButton("\u00C9t\u00E9");
+        JRadioButton rdbtnSummer = new JRadioButton("Summer");
         rdbtnSummer.setBounds(495, 92, 109, 23);
         rdbtnSummer.setEnabled(false);
         panel_3.add(rdbtnSummer);
 
-        JRadioButton rdbtnWinter = new JRadioButton("Hiver");
+        JRadioButton rdbtnWinter = new JRadioButton("Winter");
         rdbtnWinter.setBounds(495, 117, 109, 23);
         rdbtnWinter.setEnabled(false);
         panel_3.add(rdbtnWinter);
 
-        JRadioButton rdbtnFall = new JRadioButton("Automne");
+        JRadioButton rdbtnFall = new JRadioButton("Automn");
         rdbtnFall.setBounds(495, 143, 109, 23);
         rdbtnFall.setEnabled(false);
         panel_3.add(rdbtnFall);
 
-        JRadioButton rdbtnSpring = new JRadioButton("Printemps");
+        JRadioButton rdbtnSpring = new JRadioButton("Springer");
         rdbtnSpring.setBounds(495, 169, 109, 23);
         rdbtnSpring.setEnabled(false);
         panel_3.add(rdbtnSpring);
@@ -897,24 +915,37 @@ public class StateOfHealthSimulation {
         panel_14.setBounds(459, 74, 472, 124);
         panel_3.add(panel_14);
 
-        JLabel lblSaisonnier = new JLabel("Saisonnier");
+        JLabel lblSaisonnier = new JLabel("Seasonal");
         panel_14.add(lblSaisonnier);
         lblSaisonnier.setFont(new Font("Tahoma", Font.BOLD, 11));
 
         //import utilisation data
-        JButton btnImporterUtilisation = new JButton("Importer");
+        JButton btnImporterUtilisation = new JButton("Import");
         btnImporterUtilisation.setBounds(842, 397, 89, 23);
         panel_3.add(btnImporterUtilisation);
         btnImporterUtilisation.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent arg0) {
+            	SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+            	if (rdbtnAnnuel.isSelected()) {
+            		try {
+						starDate=dateFormat.parse("2018-01-01");
+						endDate = dateFormat.parse("2018-12-31");
+						createWorkingDateList(starDate,endDate);
+					} catch (ParseException e) {
+					
+						e.printStackTrace();
+					}
+            		
+            	}
                 if (rdbtnSaisonialle.isSelected()) {
-                    SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+                    
                     if (rdbtnSummer.isSelected()) {
                         try {
                             starDate = dateFormat.parse("2018-06-21");
                             endDate = dateFormat.parse("2018-09-21");
+                            createWorkingDateList(starDate,endDate);
                         } catch (ParseException e) {
-                            // TODO Auto-generated catch block
+                            
                             e.printStackTrace();
                         }
                     }
@@ -922,8 +953,9 @@ public class StateOfHealthSimulation {
                         try {
                             starDate = dateFormat.parse("2018-12-23");
                             endDate = dateFormat.parse("2018-03-21");
+                            createWorkingDateList(starDate,endDate);
                         } catch (ParseException e) {
-                            // TODO Auto-generated catch block
+                           
                             e.printStackTrace();
                         }
                     }
@@ -931,8 +963,9 @@ public class StateOfHealthSimulation {
                         try {
                             starDate = dateFormat.parse("2018-09-21");
                             endDate = dateFormat.parse("2018-12-23");
+                            createWorkingDateList(starDate,endDate);
                         } catch (ParseException e) {
-                            // TODO Auto-generated catch block
+                            
                             e.printStackTrace();
                         }
                     }
@@ -940,8 +973,9 @@ public class StateOfHealthSimulation {
                         try {
                             starDate = dateFormat.parse("2018-03-21");
                             endDate = dateFormat.parse("2018-06-21");
+                            createWorkingDateList(starDate,endDate);
                         } catch (ParseException e) {
-                            // TODO Auto-generated catch block
+                            
                             e.printStackTrace();
                         }
                     }
@@ -959,55 +993,86 @@ public class StateOfHealthSimulation {
                     c.setTime(endDate);
                     c.add(Calendar.YEAR, -2);
                     endDate = c.getTime();
-                } else {
-                    SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
-                    try {
-                        starDate = dateFormat.parse("2018-01-01");
-                        endDate = dateFormat.parse("2018-12-31");
-                    } catch (ParseException e) {
-                        // TODO Auto-generated catch block
-                        e.printStackTrace();
-                    }
-
+                    createWorkingDateList(starDate,endDate);
                 }
-
-                editCommentaire.setText("la Date a été définie. ");
+                editCommentaire.setText("the Date is set. ");
                 editCommentaire.setForeground(Color.YELLOW);
 
                 if (rdbtnHebdomadaire.isSelected()) {
-                    weekDays = -1;
+                	weekDaysList=new ArrayList<Date>();
                     HebdominaireFlag = true;
-
-                    if (rdbtnSamedi.isSelected()) {
-                        weekDays++;
+                    SimpleDateFormat df=new SimpleDateFormat("yyyy-mm-dd");
+                    Date dd=null;
+					
+                   
+                    if (rdbtnSamedi.isSelected()) {                   	
+                    	try {
+    						dd = df.parse("2018-01-06");
+    					} catch (ParseException e) {						
+    						e.printStackTrace();
+    					}
+                    	
+                        weekDaysList.add(dd);
                     }
-                    ;
+                    
                     if (rdbtnDimenche.isSelected()) {
-                        weekDays++;
+                    	try {
+    						dd = df.parse("2018-01-07");
+    					} catch (ParseException e) {						
+    						e.printStackTrace();
+    					}
+                        weekDaysList.add(dd);
                     }
-                    ;
+                    
                     if (rdbtnLundi.isSelected()) {
-                        weekDays++;
+                    	try {
+    						dd = df.parse("2018-01-01");
+    					} catch (ParseException e) {						
+    						e.printStackTrace();
+    					}
+                        weekDaysList.add(dd);
                     }
                     ;
                     if (rdbtnMardi.isSelected()) {
-                        weekDays++;
+                    	try {
+    						dd = df.parse("2018-01-02");
+    					} catch (ParseException e) {						
+    						e.printStackTrace();
+    					}
+                        weekDaysList.add(dd);
                     }
-                    ;
+                    
                     if (rdbtnMercrudi.isSelected()) {
-                        weekDays++;
+                    	try {
+    						dd = df.parse("2018-01-03");
+    					} catch (ParseException e) {						
+    						e.printStackTrace();
+    					}
+                        weekDaysList.add(dd);
                     }
-                    ;
+                    
                     if (rdbtnSamedi.isSelected()) {
-                        weekDays++;
+                    	try {
+    						dd = df.parse("2018-01-04");
+    					} catch (ParseException e) {						
+    						e.printStackTrace();
+    					}
+                        weekDaysList.add(dd);
                     }
-                    ;
+                    
                     if (rdbtnVendredi.isSelected()) {
-                        weekDays++;
-                    }
-                    ;
-
+                    	try {
+    						dd = df.parse("2018-01-05");
+    					} catch (ParseException e) {						
+    						e.printStackTrace();
+    					}
+                        weekDaysList.add(dd);
+                    }  
+                    createWeeklyWorkingDateList();
+                }else {
+                	createWorkingDateList(starDate,endDate);
                 }
+                
             }
         });
         ////////
@@ -1020,11 +1085,11 @@ public class StateOfHealthSimulation {
         tabbedPane.addTab("Graphes", null, panel_2, null);
         panel_2.setLayout(null);
 
-        JButton btnDesign = new JButton("Tracer");
+        JButton btnDesign = new JButton("Simulate");
         btnDesign.setBounds(165, 150, 89, 23);
         panel_2.add(btnDesign);
-        String s8 = "Dessiner le graphe de la durée de vie de la batterie en fonction de nombre des jours estimer.";
-        JLabel lblNewLabel_9 = new JLabel("<html>Variation de l'état de santé de la batterie en fonction du temps (jours).</html>");
+        String s8 = "Variation of the battery state of health of the battery as a function of time (days) + Expected Lifespan.";
+        JLabel lblNewLabel_9 = new JLabel("<html>"+s8+"</html>");
         lblNewLabel_9.setFont(new Font("Tahoma", Font.PLAIN, 12));
         lblNewLabel_9.setBounds(83, 32, 299, 88);
         panel_2.add(lblNewLabel_9);
@@ -1034,52 +1099,41 @@ public class StateOfHealthSimulation {
         panel_17.setBorder(new EtchedBorder(EtchedBorder.LOWERED, null, null));
         panel_17.setBounds(10, 11, 437, 187);
         panel_2.add(panel_17);
-        String s9 = "Dessiner la variation de la capacité estimer par le modele en fonction temps.";
-        JLabel lblDessinerLaVariation = new JLabel("<html>Variation de la capacit\u00E9 estim\u00E9e par le modèle en fonction du temps (jours).</html>");
+        String s9 = "Variation of the battery state of health of the battery as a function of time (days).";
+        JLabel lblDessinerLaVariation = new JLabel("<html>"+s9+"</html>");
         lblDessinerLaVariation.setBackground(new Color(255, 255, 255));
         lblDessinerLaVariation.setFont(new Font("Tahoma", Font.PLAIN, 12));
         lblDessinerLaVariation.setBounds(83, 249, 338, 88);
         panel_2.add(lblDessinerLaVariation);
 
-        JButton btnDessiner = new JButton("Tracer");
+        JButton btnDessiner = new JButton("Plot");
         btnDessiner.setBounds(177, 348, 89, 23);
         panel_2.add(btnDessiner);
         btnDessiner.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent mouseEvent) {
-                if (!rdbtnHebdomadaire.isSelected()) {
-                    if (String.valueOf(regulateur_spinner.getValue()).equals("Activer")) {
-                        avecMpptCalcul();
-                    } else {
-                        NoMpptCalcul();
-                    }
-                } else if (rdbtnHebdomadaire.isSelected()) {
-                    if (String.valueOf(regulateur_spinner.getValue()).equals("Activer")) {
-                        HebdominaireAvecMpptCalcul();
-                    } else {
-                        HebdominaireNoMpptCalcul();
-                    }
-                }
+              
                 new Graphe(gModele, "capacity");
 
             }
         });
 
 
-        JPanel panel_18 = new JPanel();
-        panel_18.setBorder(new EtchedBorder(EtchedBorder.LOWERED, null, null));
-        panel_18.setBackground(new Color(192, 192, 192));
-        panel_18.setBounds(10, 209, 437, 200);
-        panel_2.add(panel_18);
+		/*
+		 * JPanel panel_18 = new JPanel(); panel_18.setBorder(new
+		 * EtchedBorder(EtchedBorder.LOWERED, null, null)); panel_18.setBackground(new
+		 * Color(192, 192, 192)); panel_18.setBounds(10, 209, 437, 200);
+		 * panel_2.add(panel_18);
+		 */
 
-        String s10 = "Dessinez le graphique de la courbe de température à l'emplacement défini au cours de l'année.";
+        String s10 =" Variation of site temperature as a function of time (days)";
 
-        JLabel lblDissenerLaVariation = new JLabel("<html>Variation de la temp\u00E9rature \u00E0 l'emplacement d\u00E9fini au cours de l'ann\u00E9e.</html>");
+        JLabel lblDissenerLaVariation = new JLabel("<html>"+s10+"</html>");
         lblDissenerLaVariation.setFont(new Font("Tahoma", Font.PLAIN, 12));
         lblDissenerLaVariation.setBounds(536, 39, 318, 103);
         panel_2.add(lblDissenerLaVariation);
 
-        JButton btnDessiner_1 = new JButton("Tracer");
+        JButton btnDessiner_1 = new JButton("plot");
         btnDessiner_1.setBounds(638, 150, 89, 23);
         panel_2.add(btnDessiner_1);
 
@@ -1088,18 +1142,14 @@ public class StateOfHealthSimulation {
         panel_19.setBorder(new EtchedBorder(EtchedBorder.LOWERED, null, null));
         panel_19.setBounds(474, 11, 437, 187);
         panel_2.add(panel_19);
-
-        JLabel lblComingSoon_1 = new JLabel("Coming soon");
-        lblComingSoon_1.setForeground(new Color(255, 255, 255));
-        lblComingSoon_1.setFont(new Font("Tahoma", Font.BOLD, 12));
-        panel_19.add(lblComingSoon_1);
-        String s11 = "Dessiner la courbe de la durée de jour à l'emplacement défini pendant l'année ";
+        
+        String s11 = "Variation of day length as a function of time (days) ";
         JLabel lblDessinerLaCourbe = new JLabel("<html>" + s11 + "</html>");
         lblDessinerLaCourbe.setFont(new Font("Tahoma", Font.PLAIN, 12));
         lblDessinerLaCourbe.setBounds(535, 249, 380, 104);
         panel_2.add(lblDessinerLaCourbe);
 
-        JButton btnTracer = new JButton("Tracer");
+        JButton btnTracer = new JButton("plot");
         btnTracer.setBounds(638, 348, 89, 23);
         panel_2.add(btnTracer);
 
@@ -1109,12 +1159,7 @@ public class StateOfHealthSimulation {
         panel_20.setBounds(474, 209, 437, 200);
         panel_2.add(panel_20);
 
-        JLabel lblComingSoon_2 = new JLabel("Coming soon");
-        lblComingSoon_2.setForeground(new Color(255, 255, 255));
-        lblComingSoon_2.setFont(new Font("Tahoma", Font.PLAIN, 12));
-        panel_20.add(lblComingSoon_2);
-
-        JLabel lblCommentaire = new JLabel("Commentaire :");
+        JLabel lblCommentaire = new JLabel("Note :");
         lblCommentaire.setFont(new Font("Tahoma", Font.BOLD, 12));
         lblCommentaire.setBounds(28, 517, 111, 33);
         frame.getContentPane().add(lblCommentaire);
@@ -1169,13 +1214,13 @@ public class StateOfHealthSimulation {
         CDERLogo.setBounds(839, 11, 78, 54);
         frame.getContentPane().add(CDERLogo);
 
-        JLabel lblImportant = new JLabel("Important :");
+        JLabel lblImportant = new JLabel("Note :");
         lblImportant.setForeground(new Color(0, 0, 255));
         lblImportant.setFont(new Font("Tahoma", Font.BOLD, 12));
         lblImportant.setBounds(61, 11, 78, 35);
         frame.getContentPane().add(lblImportant);
 
-        String s1 = "-Il est n\u00E9cessaire d'appuyer sur le bouton (Importer) apr\u00E8s avoir rempli les cases.";
+        String s1 = "- It is mandatory to press the (Import) icon in each window";
         JLabel lblIlEstNeccaire = new JLabel("<html>" + s1 + "</html>");
         lblIlEstNeccaire.setForeground(new Color(0, 0, 255));
         lblIlEstNeccaire.setBounds(146, 15, 324, 31);
@@ -1191,7 +1236,7 @@ public class StateOfHealthSimulation {
         lblV.setBounds(958, 527, 36, 14);
         frame.getContentPane().add(lblV);
 
-        String s2 = "Donn\u00E9es m\u00E9t\u00E9orologiques extraites du serveur de site www.worldweatheronline.com ";
+        String s2 = " Meteorological data are extracted from the website www.worldweatheronline.com  ";
         JLabel lblLeServeur = new JLabel("<html>" + s2 + "</html>");
         lblLeServeur.setForeground(new Color(0, 0, 255));
         lblLeServeur.setBounds(529, 11, 300, 54);
@@ -1212,7 +1257,7 @@ public class StateOfHealthSimulation {
         JMenuItem mntmQuite = new JMenuItem("quite");
         mnMenu.add(mntmQuite);
 
-        JMenu mnAide = new JMenu("Aide");
+        JMenu mnAide = new JMenu("Help");
         menuBar.add(mnAide);
 
         JMenuItem mntmBatterie = new JMenuItem("Batterie");
@@ -1239,7 +1284,7 @@ public class StateOfHealthSimulation {
         JMenuItem mntmDureDeJour = new JMenuItem("Dur\u00E9e de jour");
         mnGraphes.add(mntmDureDeJour);
 
-        JMenu mnAPropos = new JMenu("A propos");
+        JMenu mnAPropos = new JMenu("About");
         menuBar.add(mnAPropos);
 
         JMenuItem mntmModele = new JMenuItem("Modele");
@@ -1250,11 +1295,12 @@ public class StateOfHealthSimulation {
 
         JMenuItem mntmDonnesMetho = new JMenuItem("Donn\u00E9es meth\u00E9o");
         mnAPropos.add(mntmDonnesMetho);
+        
         btnDesign.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent mouseEvent) {
                 /// save data in local storage 
-                String fileName = "PFE" + starDate.getTime();
+               // String fileName = "PFE" + starDate.getTime();
 				/*
 				for(int i=0 ; i<gModele.size();i++) {
 					FileOutputStream fileOutputStream;
@@ -1267,373 +1313,181 @@ public class StateOfHealthSimulation {
 					e.printStackTrace();
 					}
 				}*/
-                if (!rdbtnHebdomadaire.isSelected()) {
-                    if (String.valueOf(regulateur_spinner.getValue()).equals("Activer")) {
-                        avecMpptCalcul();
-                    } else {
-                        NoMpptCalcul();
-                    }
-                } else if (rdbtnHebdomadaire.isSelected()) {
-                    if (String.valueOf(regulateur_spinner.getValue()).equals("Activer")) {
-                        HebdominaireAvecMpptCalcul();
-                    } else {
-                        HebdominaireNoMpptCalcul();
-                    }
-                }
+            	if(TfixeFlag) Tfix();
+                cteCalcul();
+                calcul();
+               
                 new Graphe(gModele, "lifeTime");
 
             }
         });
 
     }
-
-
-    public void avecMpptCalcul() {
-        Boolean stopFlag = false;
-        cteCalcul();
-
-        ///////////////////////////////// Annuel et mensuel \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
-// avec regulateur et fixer la temerature		
-        if (TfixeFlag) {
-            int i = 0;
-            while (!stopFlag) {
-                if (i == nt.size()) {
-                    i = 0;
-                    ans++;
-                    days = 0;
-                }
-
-                if (Infomodele.get(i).getDate().after(starDate) && Infomodele.get(i).getDate().before(endDate)) {
-
-                    SOHo = SOHo - (ntFix * nwz1 * 86400);
-                    gModele.add((new GrapheModele(SOHo, SOHo * Capacite, (365 * ans) + days)));
-
-                } else {
-                    /// srorage condition
-				/*if(StorageCondition.equals("safe")) {
-					SOHo=SOHo-(ntFix*nwz1*86400);
-					gModele.add((new GrapheModele(SOHo,SOHo*Capacite,(365*ans)+days)));
-				}else{
-					SOHo=SOHo-(ntFix*10*nwz1*86400);;
-					gModele.add((new GrapheModele(SOHo,SOHo*Capacite,(365*ans)+days)));
-				}*/
-
-                }
-                if (SOHo < 0.005) {
-                    stopFlag = true;
-                }
-                days++;
-                i++;
-            }
-        }
-// avec regulateur et temperature variente		
-        else {
-            int i = 0;
-            while (!stopFlag) {
-                if (i == nt.size()) {
-                    i = 0;
-                    ans++;
-                    days = 0;
-                }
-                if (Infomodele.get(i).getDate().after(starDate) && Infomodele.get(i).getDate().before(endDate)) {
-
-                    SOHo = SOHo - (nt.get(i) * nwz1 * 86400);
-                    gModele.add((new GrapheModele(SOHo, SOHo * Capacite, (365 * ans) + days)));
-                } else {
-                    // storage condition
-					/*if(StorageCondition.equals("safe")) {
-						SOHo=SOHo-(nt.get(i)*nwz1*86400);
-						gModele.add((new GrapheModele(SOHo,SOHo*Capacite,(365*ans)+days)));
-					}else{
-						SOHo=SOHo-(ntFix*10*nwz1*86400);;
-						gModele.add((new GrapheModele(SOHo,SOHo*Capacite,(365*ans)+days)));
-					}*/
-                }
-                if (SOHo < 0.005) {
-                    stopFlag = true;
-                }
-                days++;
-                i++;
-
-            }
-        }
-
-
+    ////// create list of dates
+    public void createWorkingDateList(Date start,Date end) { 
+    	int i=0;
+    	SimpleDateFormat simpleDate=new SimpleDateFormat("yyyy-mm-dd");
+    	Date birth=null;
+		try {
+			birth = simpleDate.parse("1996-04-07");
+		} catch (ParseException e) {
+			e.printStackTrace();
+		}
+    	listOfDates=new ArrayList<Date>();
+    	Calendar cal=Calendar.getInstance();
+		cal.set(Calendar.YEAR, 2018);
+		cal.setTime(start); 
+    	if(end.before(start)) {
+    		cal.set(Calendar.DAY_OF_YEAR, 1);
+    		start=cal.getTime();
+    	}
+    		 
+    	while(i<=365) {
+    		if(start.before(end)) {
+    		start = cal.getTime();
+            listOfDates.add(start);
+    		}else {
+    			listOfDates.add(birth);
+    		}
+    		cal.add(Calendar.DATE, +1);
+    		i++;
+    	}
     }
-
-
-    public void NoMpptCalcul() {
-        Boolean stopFlag = false;
-        cteCalcul();
-        Double nwz = 0.0;
-//sans regulateur avec temperature fixe
-
-        if (TfixeFlag) {
-            int i = 0;
-            while (!stopFlag) {
-                if (i == nt.size()) {
-                    i = 0;
-                    ans++;
-                    days = 0;
-                }
-                /**if(Vcell.get(i)>Vodd.get(i) && Vcell.get(i)<Vocc.get(i)) {
-                 nwz=nwz1;
-                 }else if((Vocc.get(i)<=Vcell.get(i) && Vcell.get(i)<=Vss.get(i)) || (Vexx.get(i)<=Vcell.get(i) && Vcell.get(i)<=Vodd.get(i)) ) {
-                 nwz=10*nwz1;
-                 }else {
-                 nwz=100*nwz1;
-                 }*/
-                if (Infomodele.get(i).getDate().after(starDate) && Infomodele.get(i).getDate().before(endDate)) {
-                    if (T > 25) {
-                        nwz = 10 * nwz1;
-                    } else if (T > 38) {
-                        nwz = 100 * nwz1;
-                    } else {
-                        nwz = nwz1;
-                    }
-
-                    SOHo = SOHo - (ntFix * nwz * 86400);
-                    gModele.add((new GrapheModele(SOHo, SOHo * Capacite, (365 * ans) + days)));
-                } else {
-                    if (T > 25) {
-                        nwz = 10 * nwz1;
-                    } else if (T > 38) {
-                        nwz = 100 * nwz1;
-                    } else {
-                        nwz = nwz1;
-                    }
-
-                    SOHo = SOHo - 0.00001;
-                    gModele.add((new GrapheModele(SOHo, SOHo * Capacite, (365 * ans) + days)));
-                }
-                if (SOHo < 0.005) {
-                    stopFlag = true;
-                }
-                i++;
-                days++;
-
-            }
-        }
-//sans regulateur avec temperature variente
-        else {
-            int i = 0;
-            while (!stopFlag) {
-                if (i == nt.size()) {
-                    i = 0;
-                    ans++;
-                    days = 0;
-                }
-
-                /**if(Vcell.get(i)>Vodd.get(i) && Vcell.get(i)<Vocc.get(i)) {
-                 nwz=nwz1;
-                 }else if((Vocc.get(i)<=Vcell.get(i) && Vcell.get(i)<=Vss.get(i)) || (Vexx.get(i)<=Vcell.get(i) && Vcell.get(i)<=Vodd.get(i)) ) {
-                 nwz=10*nwz1;
-                 }else {
-                 nwz=100*nwz1;
-                 }*/
-                if (Infomodele.get(i).getDate().after(starDate) && Infomodele.get(i).getDate().before(endDate)) {
-                    if (Infomodele.get(i).getTemperature() > 25 && Infomodele.get(i).getTemperature() < 38) {
-                        nwz = 10 * nwz1;
-                    } else if (Infomodele.get(i).getTemperature() > 38) {
-                        nwz = 100 * nwz1;
-                    } else {
-                        nwz = nwz1;
-                    }
-                    SOHo = SOHo - (nt.get(i) * nwz * 86400);
-                    gModele.add((new GrapheModele(SOHo, SOHo * Capacite, (365 * ans) + days)));
-                } else {
-
-                    SOHo = SOHo - 0.00001;
-                    gModele.add((new GrapheModele(SOHo, SOHo * Capacite, (365 * ans) + days)));
-                }
-                if (SOHo < 0.005) {
-                    stopFlag = true;
-                }
-                i++;
-                days++;
-            }
-
-        }
-
-    }
-////////////////////////////////////////////////////////// Hebdominaire \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
-
-
-    public void HebdominaireAvecMpptCalcul() {
-        Boolean stopFlag = false;
-        cteCalcul();
-
-// avec regulateur et fixer la temerature		
-        if (TfixeFlag) {
-            int i = 0;
-            while (!stopFlag) {
-                if (i == nt.size()) {
-                    i = 0;
-                    ans++;
-                    days = 0;
-                }
-
-                if (Infomodele.get(i).getDate().getDay() < weekDays) {
-
-
-                    SOHo = SOHo - (ntFix * nwz1 * 86400);
-                    gModele.add((new GrapheModele(SOHo, SOHo * Capacite, (365 * ans) + days)));
-                } else {
-
-
-                    SOHo = SOHo - 0.0001;
-                    gModele.add((new GrapheModele(SOHo, SOHo * Capacite, (365 * ans) + days)));
-
-                }
-                if (SOHo < 0.005) {
-                    stopFlag = true;
-                }
-                days++;
-                i++;
-            }
-        }
-// avec regulateur et temperature variente		
-        else {
-            int i = 0;
-            while (!stopFlag) {
-                if (i == nt.size()) {
-                    i = 0;
-                    ans++;
-                    days = 0;
-                }
-                if (Infomodele.get(i).getDate().getDay() < weekDays) {
-
-
-                    SOHo = SOHo - (nt.get(i) * nwz1 * 86400);
-                    gModele.add((new GrapheModele(SOHo, SOHo * Capacite, (365 * ans) + days)));
-
-                } else {
-
-                    SOHo = SOHo - 0.0001;
-                    gModele.add((new GrapheModele(SOHo, SOHo * Capacite, (365 * ans) + days)));
-
-                }
-                if (SOHo < 0.005) {
-                    stopFlag = true;
-                }
-                days++;
-                i++;
-
-            }
-        }
-
-
-    }
-
-
-    public void HebdominaireNoMpptCalcul() {
-        Boolean stopFlag = false;
-        cteCalcul();
-        Double nwz = 0.0;
-//sans regulateur avec temperature fixe
-
-        if (TfixeFlag) {
-            int i = 0;
-            while (!stopFlag) {
-                if (i == nt.size()) {
-                    i = 0;
-                    ans++;
-                    days = 0;
-                }
-                /**if(Vcell.get(i)>Vodd.get(i) && Vcell.get(i)<Vocc.get(i)) {
-                 nwz=nwz1;
-                 }else if((Vocc.get(i)<=Vcell.get(i) && Vcell.get(i)<=Vss.get(i)) || (Vexx.get(i)<=Vcell.get(i) && Vcell.get(i)<=Vodd.get(i)) ) {
-                 nwz=10*nwz1;
-                 }else {
-                 nwz=100*nwz1;
-                 }*/
-                if (Infomodele.get(i).getDate().getDay() < weekDays) {
-                    if (Infomodele.get(i).getTemperature() > 25) {
-                        nwz = 10 * nwz1;
-                    } else if (Infomodele.get(i).getTemperature() > 30) {
-                        nwz = 100 * nwz1;
-                    } else {
-                        nwz = nwz1;
-                    }
-                    SOHo = SOHo - (ntFix * nwz * 86400);
-                    gModele.add((new GrapheModele(SOHo, SOHo * Capacite, (365 * ans) + days)));
-
-                } else {
-                    if (Infomodele.get(i).getTemperature() > 25) {
-                        nwz = 10 * nwz1;
-                    } else if (Infomodele.get(i).getTemperature() > 30) {
-                        nwz = 100 * nwz1;
-                    } else {
-                        nwz = nwz1;
-                    }
-                    SOHo = SOHo - 0.00001;
-                    gModele.add((new GrapheModele(SOHo, SOHo * Capacite, (365 * ans) + days)));
-
-                }
-                if (SOHo < 0.005) {
-                    stopFlag = true;
-                }
-                i++;
-                days++;
-
-            }
-        }
-//sans regulateur avec temperature variente
-        else {
-            int i = 0;
-            while (!stopFlag) {
-                if (i == nt.size()) {
-                    i = 0;
-                    ans++;
-                    days = 0;
-                }
-                /**if(Vcell.get(i)>Vodd.get(i) && Vcell.get(i)<Vocc.get(i)) {
-                 nwz=nwz1;
-                 }else if((Vocc.get(i)<=Vcell.get(i) && Vcell.get(i)<=Vss.get(i)) || (Vexx.get(i)<=Vcell.get(i) && Vcell.get(i)<=Vodd.get(i)) ) {
-                 nwz=10*nwz1;
-                 }else {
-                 nwz=100*nwz1;
-                 }*/
-                if (Infomodele.get(i).getDate().getDay() < weekDays) {
-                    if (Infomodele.get(i).getTemperature() > 25) {
-                        nwz = 10 * nwz1;
-                    } else if (Infomodele.get(i).getTemperature() > 30) {
-                        nwz = 100 * nwz1;
-                    } else {
-                        nwz = nwz1;
-                    }
-                    SOHo = SOHo - (nt.get(i) * nwz * 86400);
-                    gModele.add((new GrapheModele(SOHo, SOHo * Capacite, (365 * ans) + days)));
-
-                } else {
-                    SOHo = SOHo - 0.00001;
-                    gModele.add((new GrapheModele(SOHo, SOHo * Capacite, (365 * ans) + days)));
-
-                }
-                if (SOHo < 0.005) {
-                    stopFlag = true;
-                }
-                i++;
-                days++;
-            }
-
-        }
-
-    }
-
+    // create list of dates for days of the weeks
+    public void createWeeklyWorkingDateList() {
+    listOfDates=new ArrayList<Date>();
+    
+	for (int i=0;i<Infomodele.size();i++) {
+		for (int j=0;j<weekDaysList.size();j++) {
+			if(Infomodele.get(i).getDate().getDay()==weekDaysList.get(j).getDay()) {
+				  listOfDates.add(Infomodele.get(i).getDate()); 	
+				  System.out.println("into");
+			}else {
+				  listOfDates.add(null);
+			}
+		}
+	
+	}
+	}
+/// main method
+ public void calcul() {	 
+	int i=0;	
+	Double nwz;
+	Boolean stopFlag = false;
+	 while(!stopFlag) {
+		 if (i == nt.size()) {
+             i = 0;
+             ans++;             
+         }
+		
+	 if(getDate(listOfDates.get(i))){
+		 if(TfixeFlag) {
+			 nwz=getTfixeNWZ(i);
+		 }else {
+			 nwz=getNWZ(i);
+		 }
+		
+		SOHo = SOHo - (nt.get(i) * nwz * 86400);
+        gModele.add((new GrapheModele(SOHo, SOHo * Capacite, (365 * ans) + (i+1))));
+        System.out.println(String.valueOf(i)+"/ "+String.valueOf(nwz));
+    
+	 }else {
+		 SOHo = SOHo - 0.001;
+	     gModele.add((new GrapheModele(SOHo, SOHo * Capacite, (365 * ans) + (i+1))));
+	 }
+	 //// check the end of the year
+	 
+	 if(SOHo<0.005)   stopFlag = true;;
+	
+	 i++;
+	 }
+	 
+ }
+ // get the working days
+ public boolean getDate(Date date) {
+	for(int i=0;i<Infomodele.size();i++) {
+		if(date.equals(Infomodele.get(i).getDate())) return true;
+			}
+	 return false;
+ }
+ 
+ // get nwz value
+ public Double getNWZ(int i) {
+	 Double nwz=null;
+	 SimpleDateFormat sdf=new SimpleDateFormat("yyyy-mm-dd");
+	 Date start=null;
+	 Date end=null;
+	 
+	 if(regulateur_spinner.getValue().equals("   Ok")) {
+		 if(RegulatorModeMppt) {
+			 if((Infomodele.get(i).getTemperature()+Coef)<38) {
+				 return nwz1;
+			 }else {
+				 return (10*nwz1);
+			 }
+		 }else {
+			 return nwz1;
+		 }
+	 }else if(EstivalFlag) {
+		 try {
+		 start=sdf.parse("2018-06-21");
+		 end=sdf.parse("2018-09-21");
+		 }catch(ParseException e) {
+			 
+		 }
+		if(Infomodele.get(i).getDate().after(start) && Infomodele.get(i).getDate().before(end)) {
+			return nwz1;
+		}else {
+			 if((Infomodele.get(i).getTemperature()+Coef)<=25 ) return nwz1;
+			 if((Infomodele.get(i).getTemperature()+Coef)>25 && (Infomodele.get(i).getTemperature()+Coef)<38) return (10*nwz1);
+			 if((Infomodele.get(i).getTemperature()+Coef)>=38 ) return (100*nwz1);
+		}					
+	 }else if(HivernalFlag) {
+		 try {
+		 start=sdf.parse("2018-01-01");
+		 end=sdf.parse("2018-03-29");
+		 }catch(ParseException e) {
+			 
+		 }
+		 if(Infomodele.get(i).getDate().after(start) && Infomodele.get(i).getDate().before(end)) {
+				return nwz1;
+			}else {
+				 if((Infomodele.get(i).getTemperature()+Coef)<=25 ) return nwz1;
+				 if((Infomodele.get(i).getTemperature()+Coef)>25 && (Infomodele.get(i).getTemperature()+Coef)<38) return (10*nwz1);
+				 if((Infomodele.get(i).getTemperature()+Coef)>=38 ) return (100*nwz1);
+			}
+	 }
+	 else {
+		 if((Infomodele.get(i).getTemperature()+Coef)<=25 ) return nwz1;
+		 if((Infomodele.get(i).getTemperature()+Coef)>25 && (Infomodele.get(i).getTemperature()+Coef)<38) return (10*nwz1);
+		 if((Infomodele.get(i).getTemperature()+Coef)>=38 ) return (100*nwz1);
+	 }
+	 return nwz;
+ }
+ // get nwz value when temperature is fixe
+ public Double getTfixeNWZ(int i) {
+	 if((Infomodele.get(i).getTemperature())<=25 ) return nwz1;
+	 if((Infomodele.get(i).getTemperature())>25 && (Infomodele.get(i).getTemperature()+Coef)<38) return (10*nwz1);
+	 if((Infomodele.get(i).getTemperature())>=38 ) return (100*nwz1);
+	 return null;
+ }
+ // change InfoModele to adapte with temperature fixe
+ public void Tfix() {
+	 for(int i=0;i<Infomodele.size();i++) {
+		 Infomodele.get(i).setTemp(T);
+	 }
+ }
+ // calculate canstants
     public void cteCalcul() {
         nwz1 = (3.17 * Math.pow(10, -8)) / Id;
-
-        ntFix = Math.pow(2, (T - 25) / 10);
-
+    
         for (int i = 0; i < Infomodele.size(); i++) {
-            nt.add(Math.pow(2, (Infomodele.get(i).getTemperature() - 25) / 10));
-            Vss.add(Vs - (0.005 * (Infomodele.get(i).getTemperature() - 25)));
-            Vocc.add(Voc - (0.005 * (Infomodele.get(i).getTemperature() - 25)));
-            Vodd.add(Vod - (0.005 * (Infomodele.get(i).getTemperature() - 25)));
-            Vexx.add(Vex - (0.005 * (Infomodele.get(i).getTemperature() - 25)));
-            Vnn.add(Vn - (0.005 * (Infomodele.get(i).getTemperature() - 25)));
-
+        	if(TfixeFlag) {
+        		nt.add(Math.pow(2, (T - 25) / 10));
+        	}else {
+        		nt.add(Math.pow(2, (Infomodele.get(i).getTemperature() - 25) / 10));
         }
     }
+    }
+    
 }
